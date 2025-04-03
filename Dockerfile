@@ -1,17 +1,10 @@
-# Use Amazon Linux 2 base image for AWS Lambda with Python 3.9
 FROM public.ecr.aws/lambda/python:3.9
 
-# Set working directory
-WORKDIR /app
-
-# Copy requirements first (to leverage Docker caching)
-COPY backend/requirements.txt ./
-
 # Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install boto3
 
-# Copy the backend code into the container
-COPY backend/ .
+# Copy function code
+COPY backend/lambda_function.py ${LAMBDA_TASK_ROOT}
 
-# Set the Lambda handler (adjust to match function in main.py)
-CMD ["main.lambda_handler"]
+# Set handler
+CMD ["lambda_function.lambda_handler"]
