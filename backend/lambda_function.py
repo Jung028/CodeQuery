@@ -1,86 +1,163 @@
 import os
-import boto3
 import json
 import ast
+from pathlib import Path
+from tree_sitter import Language, Parser
 
-# AWS S3 setup
-S3_BUCKET = os.environ.get("S3_BUCKET", "your-s3-bucket-name")
-s3_client = boto3.client("s3")
+# Build the Tree-sitter language library for JavaScript
+Language.build_library(
+    "build/my-languages.so",
+    [
+        "tree-sitter-javascript"
+    ]
+)
+JS_LANGUAGE = Language("build/my-languages.so", "javascript")
 
-def download_from_s3(s3_key):
-    """Downloads a file from S3 and returns its content."""
-    obj = s3_client.get_object(Bucket=S3_BUCKET, Key=s3_key)
-    return obj['Body'].read().decode('utf-8')
+# ---------------- PYTHON PARSING ----------------
+def extract_python_info(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        try:
+            tree = ast.parse(f.read(), filename=file_path)
+        except SyntaxError:
+            return {"error": "SyntaxError in file", "file": file_path}
 
-def parse_python_code(code):
-    """Parses the Python code into an AST and extracts relevant information."""
-    tree = ast.parse(code)
-    
-    parsed_data = {
+    results = {
+        "file": file_path,
+        "language": "python",
         "functions": [],
         "classes": [],
-        "variables": [],
         "imports": [],
+        "variables": [],
         "comments": []
     }
-    
+
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef):
-            parsed_data["functions"].append({
+            results["functions"].append({
                 "name": node.name,
-                "arguments": [arg.arg for arg in node.args.args],
-                "return_type": "unknown",
-                "docstring": ast.get_docstring(node)
+                "args": [arg.arg for arg in node.args.args],
+                "docstring": ast.get_docstring(node),
+                "returns": ast.unparse(node.returns) if node.returns else None
             })
         elif isinstance(node, ast.ClassDef):
-            class_data = {
+            results["classes"].append({
                 "name": node.name,
-                "methods": [],
-                "docstring": ast.get_docstring(node)
-            }
-            for class_node in node.body:
-                if isinstance(class_node, ast.FunctionDef):
-                    class_data["methods"].append({
-                        "name": class_node.name,
-                        "arguments": [arg.arg for arg in class_node.args.args],
-                        "docstring": ast.get_docstring(class_node)
-                    })
-            parsed_data["classes"].append(class_data)
+                "docstring": ast.get_docstring(node),
+                "methods": [n.name for n in node.body if isinstance(n, ast.FunctionDef)]
+            })
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            results["imports"].append({
+                "module": getattr(node, "module", ""),
+                "names": [n.name for n in node.names]
+            })
         elif isinstance(node, ast.Assign):
             for target in node.targets:
                 if isinstance(target, ast.Name):
-                    parsed_data["variables"].append({
+                    results["variables"].append({
                         "name": target.id,
-                        "type": "unknown",
-                        "initialization": ast.dump(node.value)
+                        "value": ast.unparse(node.value)
                     })
-        elif isinstance(node, ast.Import) or isinstance(node, ast.ImportFrom):
-            for alias in node.names:
-                parsed_data["imports"].append(f"import {alias.name}")
-    
-    return parsed_data
 
-def lambda_handler(event, context):
-    """AWS Lambda entry point to process S3 files."""
-    try:
-        # Get the S3 key (path to the file) from the event
-        s3_key = event['s3_key']
-        
-        # Download the file from S3
-        file_content = download_from_s3(s3_key)
-        
-        # Parse the Python code
-        parsed_code = parse_python_code(file_content)
-        
-        # Return parsed code as JSON
-        return {
-            'statusCode': 200,
-            'body': json.dumps(parsed_code)
-        }
+    return results
+
+# ---------------- JAVASCRIPT PARSING ----------------
+def extract_javascript_info(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        source_code = f.read()
+
+    parser = Parser()
+    parser.set_language(JS_LANGUAGE)
+    tree = parser.parse(bytes(source_code, "utf8"))
+
+    root_node = tree.root_node
+    results = {
+        "file": file_path,
+        "language": "javascript",
+        "functions": [],
+        "variables": [],
+        "imports": []
+    }
+
+    # Debugging: Print the root node type and its children
+    print(f"Root Node Type: {root_node.type}")
+    print(f"Root Node Start Byte: {root_node.start_byte}, End Byte: {root_node.end_byte}")
     
-    except Exception as e:
-        print(f"ERROR: {str(e)}")  # Log error in CloudWatch
-        return {
-            "error": "Internal Server Error",
-            "details": str(e)
-        }
+    def walk(node, depth=0):
+        indent = "  " * depth  # Indentation for nested nodes
+        print(f"{indent}Visiting Node: {node.type} (start_byte: {node.start_byte}, end_byte: {node.end_byte})")
+
+        # Detailed debug output for each type of node
+        if node.type == "function_declaration":
+            print(f"{indent}  Found function declaration!")
+            name_node = node.child_by_field_name("name")
+            params_node = node.child_by_field_name("parameters")
+            if name_node:
+                print(f"{indent}    Function Name: {source_code[name_node.start_byte:name_node.end_byte]}")
+            if params_node:
+                params = [source_code[child.start_byte:child.end_byte] for child in params_node.children if child.type == "identifier"]
+                print(f"{indent}    Function Params: {params}")
+            results["functions"].append({
+                "name": source_code[name_node.start_byte:name_node.end_byte] if name_node else "Unnamed",
+                "params": params
+            })
+        elif node.type == "variable_declaration":
+            print(f"{indent}  Found variable declaration!")
+            for child in node.children:
+                if child.type == "variable_declarator":
+                    name_node = child.child_by_field_name("name")
+                    if name_node:
+                        print(f"{indent}    Variable Name: {source_code[name_node.start_byte:name_node.end_byte]}")
+                    results["variables"].append({
+                        "name": source_code[name_node.start_byte:name_node.end_byte] if name_node else "Unnamed"
+                    })
+        elif node.type == "import_statement":
+            print(f"{indent}  Found import statement!")
+            results["imports"].append({
+                "text": source_code[node.start_byte:node.end_byte]
+            })
+
+        # Recursively walk through child nodes
+        for child in node.children:
+            walk(child, depth + 1)
+
+    walk(root_node)
+    return results
+
+# ---------------- MAIN DRIVER ----------------
+def get_code_files(directory, extensions=(".py", ".js")):
+    code_files = []
+    for root, _, files in os.walk(directory):
+        for file in files:
+            if file.endswith(extensions):
+                code_files.append(os.path.join(root, file))
+    return code_files
+
+def main():
+    source_dir = "repositories/mindhive-assessment"
+    output_dir = "output_json"
+    os.makedirs(output_dir, exist_ok=True)
+
+    code_files = get_code_files(source_dir)
+    print(f"📂 Found {len(code_files)} files to process")
+
+    for full_path in code_files:
+        relative_path = os.path.relpath(full_path, source_dir)
+        output_path = os.path.join(output_dir, relative_path) + ".json"
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        if full_path.endswith(".py"):
+            result = extract_python_info(full_path)
+        elif full_path.endswith(".js"):
+            result = extract_javascript_info(full_path)
+        else:
+            continue
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, indent=2)
+
+        print(f"✅ Saved JSON for {relative_path}")
+
+    print("\n🎉 All done!")
+
+if __name__ == "__main__":
+    main()

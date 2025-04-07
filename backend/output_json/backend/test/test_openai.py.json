@@ -1,0 +1,25 @@
+{
+  "file": "repositories/mindhive-assessment/backend/test/test_openai.py",
+  "language": "python",
+  "functions": [],
+  "classes": [],
+  "imports": [
+    {
+      "module": "",
+      "names": [
+        "google.generativeai"
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "name": "model",
+      "value": "genai.GenerativeModel('gemini-1.5-flash-latest')"
+    },
+    {
+      "name": "response",
+      "value": "model.generate_content('Tell me a joke about robots')"
+    }
+  ],
+  "comments": []
+}

@@ -1,0 +1,58 @@
+{
+  "file": "repositories/mindhive-assessment/frontend/src/McdMap.js",
+  "language": "javascript",
+  "functions": [
+    {
+      "name": "Arrow Function",
+      "params": []
+    },
+    {
+      "name": "Arrow Function",
+      "params": []
+    },
+    {
+      "name": "Arrow Function",
+      "params": []
+    },
+    {
+      "name": "Arrow Function",
+      "params": []
+    },
+    {
+      "name": "Arrow Function",
+      "params": []
+    },
+    {
+      "name": "Arrow Function",
+      "params": []
+    },
+    {
+      "name": "Arrow Function",
+      "params": []
+    },
+    {
+      "name": "Arrow Function",
+      "params": []
+    },
+    {
+      "name": "Arrow Function",
+      "params": []
+    },
+    {
+      "name": "Arrow Function",
+      "params": []
+    }
+  ],
+  "variables": [],
+  "imports": [
+    {
+      "text": "import { useEffect, useState, useRef } from \"react\";"
+    },
+    {
+      "text": "import L from \"leaflet\";"
+    },
+    {
+      "text": "import \"leaflet/dist/leaflet.css\";"
+    }
+  ]
+}

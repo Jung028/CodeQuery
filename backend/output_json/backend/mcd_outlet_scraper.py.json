@@ -1,0 +1,464 @@
+{
+  "file": "repositories/mindhive-assessment/backend/mcd_outlet_scraper.py",
+  "language": "python",
+  "functions": [
+    {
+      "name": "setup_ssh",
+      "args": [],
+      "docstring": "Connects to EC2 via SSH and runs PostgreSQL setup.",
+      "returns": null
+    },
+    {
+      "name": "setup_driver",
+      "args": [],
+      "docstring": "Initializes Selenium WebDriver with headless Chromium for better compatibility.",
+      "returns": null
+    },
+    {
+      "name": "get_page_source",
+      "args": [
+        "url"
+      ],
+      "docstring": "Fetches page source using Selenium.",
+      "returns": null
+    },
+    {
+      "name": "extract_outlets",
+      "args": [
+        "html"
+      ],
+      "docstring": "Extracts outlet details and assigns the correct services to each location.",
+      "returns": null
+    },
+    {
+      "name": "save_to_excel",
+      "args": [
+        "outlets",
+        "filename"
+      ],
+      "docstring": "Saves outlet data to an Excel spreadsheet in the same folder.",
+      "returns": null
+    },
+    {
+      "name": "filter_kl_outlets",
+      "args": [
+        "outlets"
+      ],
+      "docstring": "Filters outlets in Kuala Lumpur.",
+      "returns": null
+    },
+    {
+      "name": "save_to_database",
+      "args": [
+        "outlets"
+      ],
+      "docstring": "Saves outlet data and services to the PostgreSQL database via SSH.",
+      "returns": null
+    },
+    {
+      "name": "geocode_address",
+      "args": [
+        "address"
+      ],
+      "docstring": "Retrieves latitude and longitude for a given address using Google Maps API.",
+      "returns": null
+    },
+    {
+      "name": "enrich_outlets_with_coordinates",
+      "args": [
+        "outlets"
+      ],
+      "docstring": "Adds latitude and longitude to outlets using Google Maps API.",
+      "returns": null
+    },
+    {
+      "name": "display_outlets",
+      "args": [
+        "outlets"
+      ],
+      "docstring": "Displays outlets in Kuala Lumpur along with services.",
+      "returns": null
+    },
+    {
+      "name": "home",
+      "args": [],
+      "docstring": null,
+      "returns": null
+    },
+    {
+      "name": "scrape_mcdonalds",
+      "args": [],
+      "docstring": null,
+      "returns": null
+    },
+    {
+      "name": "main",
+      "args": [],
+      "docstring": "Main function to connect, scrape, filter, display, and store outlets.",
+      "returns": null
+    }
+  ],
+  "classes": [],
+  "imports": [
+    {
+      "module": "",
+      "names": [
+        "logging"
+      ]
+    },
+    {
+      "module": "",
+      "names": [
+        "os"
+      ]
+    },
+    {
+      "module": "",
+      "names": [
+        "json"
+      ]
+    },
+    {
+      "module": "",
+      "names": [
+        "shutil"
+      ]
+    },
+    {
+      "module": "",
+      "names": [
+        "paramiko"
+      ]
+    },
+    {
+      "module": "",
+      "names": [
+        "time"
+      ]
+    },
+    {
+      "module": "",
+      "names": [
+        "pandas"
+      ]
+    },
+    {
+      "module": "dotenv",
+      "names": [
+        "load_dotenv"
+      ]
+    },
+    {
+      "module": "selenium",
+      "names": [
+        "webdriver"
+      ]
+    },
+    {
+      "module": "selenium.webdriver.chrome.service",
+      "names": [
+        "Service"
+      ]
+    },
+    {
+      "module": "selenium.webdriver.chrome.options",
+      "names": [
+        "Options"
+      ]
+    },
+    {
+      "module": "bs4",
+      "names": [
+        "BeautifulSoup"
+      ]
+    },
+    {
+      "module": "webdriver_manager.chrome",
+      "names": [
+        "ChromeDriverManager"
+      ]
+    },
+    {
+      "module": "googlemaps",
+      "names": [
+        "Client"
+      ]
+    },
+    {
+      "module": "fastapi",
+      "names": [
+        "FastAPI",
+        "HTTPException"
+      ]
+    },
+    {
+      "module": "",
+      "names": [
+        "requests"
+      ]
+    },
+    {
+      "module": "fastapi.middleware.cors",
+      "names": [
+        "CORSMiddleware"
+      ]
+    },
+    {
+      "module": "",
+      "names": [
+        "google.generativeai"
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "name": "app",
+      "value": "FastAPI()"
+    },
+    {
+      "name": "SSH_HOST",
+      "value": "os.getenv('SSH_HOST')"
+    },
+    {
+      "name": "SSH_USER",
+      "value": "os.getenv('SSH_USER')"
+    },
+    {
+      "name": "SSH_KEY_PATH",
+      "value": "os.getenv('SSH_KEY_PATH')"
+    },
+    {
+      "name": "DB_HOST",
+      "value": "os.getenv('DB_HOST')"
+    },
+    {
+      "name": "DB_NAME",
+      "value": "os.getenv('DB_NAME')"
+    },
+    {
+      "name": "DB_USER",
+      "value": "os.getenv('DB_USER')"
+    },
+    {
+      "name": "DB_PASSWORD",
+      "value": "os.getenv('DB_PASSWORD')"
+    },
+    {
+      "name": "DB_PORT",
+      "value": "os.getenv('DB_PORT')"
+    },
+    {
+      "name": "REACT_APP_GOOGLE_MAPS_API_KEY",
+      "value": "os.getenv('REACT_APP_GOOGLE_MAPS_API_KEY')"
+    },
+    {
+      "name": "SQL_SETUP",
+      "value": "'\\nCREATE TABLE outlets (\\n    id SERIAL PRIMARY KEY,\\n    name VARCHAR(255) NOT NULL UNIQUE,  -- Ensure name is unique\\n    address TEXT,\\n    phone VARCHAR(50),\\n    waze_link TEXT,\\n    latitude DOUBLE PRECISION,\\n    longitude DOUBLE PRECISION,\\n    services TEXT,  -- Added services column\\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\\n);\\n'"
+    },
+    {
+      "name": "PSQL_COMMAND",
+      "value": "f'PGPASSWORD=\"{DB_PASSWORD}\" psql --host={DB_HOST} --port={DB_PORT} --dbname={DB_NAME} --username={DB_USER} -c \"{SQL_SETUP}\"'"
+    },
+    {
+      "name": "gmaps",
+      "value": "GoogleMaps(key=REACT_APP_GOOGLE_MAPS_API_KEY)"
+    },
+    {
+      "name": "GEMINI_API_KEY",
+      "value": "os.getenv('GEMINI_API_KEY')"
+    },
+    {
+      "name": "model",
+      "value": "genai.GenerativeModel('gemini-1.5-flash-latest')"
+    },
+    {
+      "name": "csv_file",
+      "value": "'chat-data-outlets.csv'"
+    },
+    {
+      "name": "df",
+      "value": "pd.read_csv(csv_file, delimiter=',', quotechar='\"', on_bad_lines='skip')"
+    },
+    {
+      "name": "ssh",
+      "value": "paramiko.SSHClient()"
+    },
+    {
+      "name": "chrome_options",
+      "value": "Options()"
+    },
+    {
+      "name": "service",
+      "value": "Service(ChromeDriverManager().install())"
+    },
+    {
+      "name": "driver",
+      "value": "setup_driver()"
+    },
+    {
+      "name": "page_source",
+      "value": "driver.page_source"
+    },
+    {
+      "name": "soup",
+      "value": "BeautifulSoup(html, 'html.parser')"
+    },
+    {
+      "name": "outlets",
+      "value": "[]"
+    },
+    {
+      "name": "outlet_divs",
+      "value": "soup.find_all('div', class_='addressBox')"
+    },
+    {
+      "name": "data",
+      "value": "[]"
+    },
+    {
+      "name": "df",
+      "value": "pd.DataFrame(data)"
+    },
+    {
+      "name": "sql_commands",
+      "value": "['BEGIN;']"
+    },
+    {
+      "name": "full_sql_command",
+      "value": "' '.join(sql_commands)"
+    },
+    {
+      "name": "ssh",
+      "value": "setup_ssh()"
+    },
+    {
+      "name": "ssh",
+      "value": "setup_ssh()"
+    },
+    {
+      "name": "output",
+      "value": "stdout.read().decode()"
+    },
+    {
+      "name": "error",
+      "value": "stderr.read().decode()"
+    },
+    {
+      "name": "service_icons",
+      "value": "outlet_div.find_all('span', class_='ed-tooltiptext')"
+    },
+    {
+      "name": "services",
+      "value": "[service.text.strip() for service in service_icons]"
+    },
+    {
+      "name": "name",
+      "value": "outlet.get('name', 'N/A').replace(\"'\", \"''\")"
+    },
+    {
+      "name": "address",
+      "value": "outlet.get('address', 'N/A').replace(\"'\", \"''\")"
+    },
+    {
+      "name": "phone",
+      "value": "outlet.get('telephone', 'N/A').replace(\"'\", \"''\")"
+    },
+    {
+      "name": "waze_link",
+      "value": "outlet.get('url', 'N/A').replace(\"'\", \"''\")"
+    },
+    {
+      "name": "coordinates",
+      "value": "geocode_address(outlet.get('address', ''))"
+    },
+    {
+      "name": "latitude",
+      "value": "coordinates['latitude'] if coordinates['latitude'] is not None else 'NULL'"
+    },
+    {
+      "name": "longitude",
+      "value": "coordinates['longitude'] if coordinates['longitude'] is not None else 'NULL'"
+    },
+    {
+      "name": "services",
+      "value": "', '.join(outlet.get('services', [])).replace(\"'\", \"''\")"
+    },
+    {
+      "name": "sql_command",
+      "value": "f\"\\n        INSERT INTO outlets (name, address, phone, waze_link, latitude, longitude, services)\\n        VALUES ('{name}', '{address}', '{phone}', '{waze_link}', {latitude}, {longitude}, '{services}')\\n        ON CONFLICT (name) DO UPDATE \\n        SET address = EXCLUDED.address,\\n            phone = EXCLUDED.phone,\\n            waze_link = EXCLUDED.waze_link,\\n            latitude = EXCLUDED.latitude,\\n            longitude = EXCLUDED.longitude,\\n            services = EXCLUDED.services;\\n        \""
+    },
+    {
+      "name": "geocode_result",
+      "value": "gmaps.geocode(address)"
+    },
+    {
+      "name": "url",
+      "value": "'https://www.mcdonalds.com.my/locate-us'"
+    },
+    {
+      "name": "html",
+      "value": "get_page_source(url)"
+    },
+    {
+      "name": "outlets",
+      "value": "extract_outlets(html)"
+    },
+    {
+      "name": "kl_outlets",
+      "value": "filter_kl_outlets(outlets)"
+    },
+    {
+      "name": "kl_outlets",
+      "value": "enrich_outlets_with_coordinates(kl_outlets)"
+    },
+    {
+      "name": "outlet_data",
+      "value": "df.to_dict(orient='records')"
+    },
+    {
+      "name": "context",
+      "value": "\"Here is a list of McDonald's outlets with their details: \" + str(outlet_data)"
+    },
+    {
+      "name": "response",
+      "value": "model.generate_content(f'{context}\\n\\nUser query: {query}')"
+    },
+    {
+      "name": "url",
+      "value": "'https://www.mcdonalds.com.my/locate-us'"
+    },
+    {
+      "name": "html",
+      "value": "get_page_source(url)"
+    },
+    {
+      "name": "outlets",
+      "value": "extract_outlets(html)"
+    },
+    {
+      "name": "kl_outlets",
+      "value": "filter_kl_outlets(outlets)"
+    },
+    {
+      "name": "kl_outlets",
+      "value": "enrich_outlets_with_coordinates(kl_outlets)"
+    },
+    {
+      "name": "data",
+      "value": "json.loads(script.string)"
+    },
+    {
+      "name": "output",
+      "value": "stdout.read().decode()"
+    },
+    {
+      "name": "error",
+      "value": "stderr.read().decode()"
+    },
+    {
+      "name": "location",
+      "value": "geocode_result[0]['geometry']['location']"
+    }
+  ],
+  "comments": []
+}

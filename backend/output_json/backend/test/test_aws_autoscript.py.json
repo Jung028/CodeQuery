@@ -1,0 +1,76 @@
+{
+  "file": "repositories/mindhive-assessment/backend/test/test_aws_autoscript.py",
+  "language": "python",
+  "functions": [
+    {
+      "name": "connect_via_ssh",
+      "args": [],
+      "docstring": "Establish SSH connection and run PostgreSQL command ",
+      "returns": null
+    }
+  ],
+  "classes": [],
+  "imports": [
+    {
+      "module": "",
+      "names": [
+        "paramiko"
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "name": "EC2_HOST",
+      "value": "'ec2-3-27-228-44.ap-southeast-2.compute.amazonaws.com'"
+    },
+    {
+      "name": "SSH_KEY_PATH",
+      "value": "'C:\\\\Users\\\\AdamLim\\\\Downloads\\\\ec2-database-connect.pem'"
+    },
+    {
+      "name": "SSH_USER",
+      "value": "'ec2-user'"
+    },
+    {
+      "name": "DB_HOST",
+      "value": "'database-test1.cpgsc4aw269b.ap-southeast-2.rds.amazonaws.com'"
+    },
+    {
+      "name": "DB_PORT",
+      "value": "'5432'"
+    },
+    {
+      "name": "DB_NAME",
+      "value": "'postgres'"
+    },
+    {
+      "name": "DB_USER",
+      "value": "'postgres'"
+    },
+    {
+      "name": "DB_PASSWORD",
+      "value": "'Remember121314'"
+    },
+    {
+      "name": "SQL_COMMAND",
+      "value": "'\\nCREATE TABLE IF NOT EXISTS test_table (\\n    id SERIAL PRIMARY KEY,\\n    name VARCHAR(100) NOT NULL,\\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\\n);\\n'"
+    },
+    {
+      "name": "PSQL_COMMAND",
+      "value": "f'PGPASSWORD=\"{DB_PASSWORD}\" psql --host={DB_HOST} --port={DB_PORT} --dbname={DB_NAME} --username={DB_USER} -c \"{SQL_COMMAND}\"'"
+    },
+    {
+      "name": "ssh",
+      "value": "paramiko.SSHClient()"
+    },
+    {
+      "name": "output",
+      "value": "stdout.read().decode()"
+    },
+    {
+      "name": "error",
+      "value": "stderr.read().decode()"
+    }
+  ],
+  "comments": []
+}
